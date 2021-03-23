@@ -1,113 +1,204 @@
-/************************** EVENTS JS MINI CHALLENGE WITH JSON SERVER ******************************/
-const animalsUl = document.querySelector('ul#animals')
-const form = document.querySelector('form#new-animal-sighting-form')
-const pLikes = document.querySelector('div#profile p.likes')
-const likeBtn = document.querySelector('button.like-button')
+// The endpoints you may need are:
+
+// GET /travelers/1
+// PATCH /travelers/1
+// GET /animalSightings
+// POST /animalSightings
+// PATCH /animalSightings/:id
+// DELETE /animalSightings/:id
+const animalSightingsContainer = document.querySelector('ul#animals')
+const newAnimalForm = document.querySelector('#new-animal-sighting-form')
+
+//Deliverable 1: Show traveler info upon page load
+// When the page loads, the information about the traveler should display including their name, image, nickname, and number of likes.
+
+fetch('http://localhost:3000/travelers/1')
+.then(resp => resp.json())
+.then(data => renderAll(data))
 
 
-/********* Render Functions *********/
+function renderAll(data){
 
-function renderOneSighting(sighting) {
+    const travelerName = document.querySelector('h2')
+    const travelerNickname = document.querySelector('em')
+    const likes = travelerNickname.nextElementSibling
+    let photo = travelerName.previousElementSibling
+
+    travelerName.textContent = data.name 
+    travelerNickname.textContent = data.nickname 
+    likes.textContent = data.likes //now showing likes after
+    photo.src = data.photo
+
+    const allAnimals = data.animalSightings.forEach(element => {
+        const li = document.createElement('li')
+        li.dataset.id = element.id 
+
+        li.innerHTML = `
+        <p>${element.description}</p>
+        <img src='${element.photo}' alt='${element.description}'/>
+        <a href='video url here' target='_blank'>Here's a video about the ${element.species} species!</a>
+        <p class='likes-display'>${element.likes} Likes</p>
+        <button class="like-button" type="button">Like</button>
+        <button class="delete-button" type="button">Delete</button>
+        <button class="toggle-update-form-button" type="button">Toggle Update Form</button>
+        <form class="update-form" style="display: none;">
+          <input type="text" value="${element.description}"/>
+          <input type="submit" value="Update description">
+          </form>`
+
+          animalSightingsContainer.append(li)
+    });
+
+}
+
+function renderOne(animalObj){
     const li = document.createElement('li')
-    li.dataset.id = sighting.id
-    li.dataset.travelerId = sighting.travelerId
-
+    li.dataset.id = animalObj.id 
     li.innerHTML = `
-            <h3>${sighting.species}</h3>
-            <img src='${sighting.photo}'/>
-            <a href='${sighting.link}'>Click for video</a>
-            <p>${sighting.description}</p>
-            `
-    animalsUl.append(li)
+    <p>${animalObj.description}</p>
+    <img src='${animalObj.photo}' alt='${animalObj.description}'/>
+    <a href='video url here' target='_blank'>Here's a video about the ${animalObj.species} species!</a>
+    <p class='likes-display'>${animalObj.likes} Likes</p>
+    <button class="like-button" type="button">Like</button>
+    <button class="delete-button" type="button">Delete</button>
+    <button class="toggle-update-form-button" type="button">Toggle Update Form</button>
+    <form class="update-form" style="display: none;">
+      <input type="text" value="${animalObj.description}"/>
+      <input type="submit" value="Update description">
+      </form>`
+
+      animalSightingsContainer.append(li)
 }
 
-function renderTraveler() {
-    fetch('http://localhost:3000/travelers/1')
-        .then(res => res.json())
-        .then(trvlrObj => {
-            const img = document.querySelector('div#profile img')
-            img.src = trvlrObj.photo
-            img.alt = trvlrObj.name
-
-            const h2 = document.querySelector('div#profile h2')
-            h2.textContent = trvlrObj.name
-
-            const em = document.querySelector('div#profile em')
-            em.textContent = trvlrObj.nickname
-            pLikes.textContent = `${trvlrObj.likes} Likes`
-        })
-}
-
-
-function renderAllSightings() {
-    fetch('http://localhost:3000/animalSightings')
-        .then(res => res.json())
-        .then(animalSightingsArr => animalSightingsArr.forEach(sighting => renderOneSighting(sighting)))
-}
-
-/********* Event Listener Callbacks *********/
-
-function handleSubmit(event) {
+newAnimalForm.addEventListener('submit', event =>{
     event.preventDefault()
-    // using the name attribute
-    // const species = event.target.species.value
-    // const video = event.target.video.value
-    // const photo = event.target.photo.value
-    // const description = event.target.description.value
 
-    // console.dir(event.target)
-    // using the index
-    const species = event.target[0].value
-    const video = event.target[1].value
-    const photo = event.target[2].value
-    const description = event.target[3].value
-    form.reset()
+   
 
-    fetch('http://localhost:3000/animalSightings', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-            travelerId: 1,
-            species: species,
-            photo: photo,
-            link: video,
-            description: description
-        })
+   const newAnimalObj = {
+       travelerId: 1,
+       species: event.target.species.value,
+       video: event.target.video.value,
+       photo: event.target.photo.value,
+       description: event.target.description.value,
+       likes: 0
+   }
+
+fetch('http://localhost:3000/animalSightings', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }, 
+      body: JSON.stringify(newAnimalObj)
+      
     })
-        .then(res => res.json())
-        .then(sighting => renderOneSighting(sighting))
-}
+    .then(resp => resp.json())
+    .then(data => renderOne(data))
+    event.target.reset()
+})
 
 
-function handleLikeClick() {
-    const currLikes = parseInt(pLikes.textContent)
-    const newLikes = currLikes + 1
-    pLikes.textContent = `${newLikes} Likes`
-    console.log(newLikes)
+// Deliverable 4: Increase traveler likes
+// When the user clicks on the traveler's like button, the new number of likes should display on the page without reloading the page. The new number of likes should persist (if the page reloads, the new number of likes should still display).
 
-    fetch('http://localhost:3000/travelers/1', {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({ likes: newLikes })
-    })
-        .then(res => res.json())
-        .then(updatedTrvlr => {
-            console.log(updatedTrvlr)
-        })
-}
+// trav like button
+//new num likes
+//no reload
 
-/********* Event Listeners *********/
-
-form.addEventListener('submit', handleSubmit)
-likeBtn.addEventListener('click', handleLikeClick)
+const likeBtn = document.getElementsByClassName('like-button')
+const profile = document.querySelector('div#profile')
 
 
-/********* APP INIT *********/
-renderTraveler()
-renderAllSightings()
+profile.addEventListener('click', event => {
+    event.preventDefault()
+if (event.target.matches('.like-button')){
+    const likes = event.target.previousElementSibling
+    const newLikes = parseInt(likes.textContent) + 1
+    likes.textContent = `${newLikes} Likes`
+
+        fetch('http://localhost:3000/travelers/1', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }, 
+            body: JSON.stringify({ likes: newLikes })
+            
+        })  
+        
+        // .then(resp => resp.json())
+        // .then(travLikes => {
+            
+        // not ness for PATCH
+    }
+})
+
+animalSightingsContainer.addEventListener('click', event => {
+    event.preventDefault()
+if (event.target.matches('.like-button')){
+    const likes = event.target.previousElementSibling
+    const newLikes = parseInt(likes.textContent) + 1
+    likes.textContent = `${newLikes} Likes`
+    const id = likes.parentNode.dataset.id 
+
+        fetch(`http://localhost:3000/animalSightings/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }, 
+            body: JSON.stringify({ likes: newLikes })
+            
+        })  
+        
+        // .then(resp => resp.json())
+        // .then(travLikes => {
+            
+        // not ness for PATCH
+    }
+})
+
+animalSightingsContainer.addEventListener('click', event => {
+if (event.target.matches('.delete-button')){
+    event.target.parentNode.remove()
+    const id = event.target.parentNode.dataset.id 
+    
+
+        fetch(`http://localhost:3000/animalSightings/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+            
+        })  
+        
+        // .then(resp => resp.json())
+        // .then(travLikes => {
+            
+        // not ness for PATCH
+    } else if (event.target.matches('.toggle-update-form-button')){ 
+        
+        // let toggle = event.target.nextElementSibling.style.display
+        // toggle === 'none' ? toggle = 'block' : toggle = 'none'
+        if (event.target.nextElementSibling.style.display === 'none'){
+            event.target.nextElementSibling.style.display = 'block'
+        }else {event.target.nextElementSibling.style.display = 'none'}
+    }
+})
+// console.log(animalSightingsContainer)
+// animalSightingsContainer.addEventListener('submit', event => {
+//     event.preventDefault()
+//     if (event.target.matches('#animals > li:nth-child(1) > form')){
+        
+//     }
+// })
+
+animalSightingsContainer.addEventListener('submit',function(event){   
+     
+    if (event.target.matches('form')){
+        event.preventDefault()
+        console.log('clicked')
+    }
+})
